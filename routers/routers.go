@@ -1,43 +1,48 @@
 package routers
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 
-	// 👇 注意：如果你现在的 go.mod 里的 module 还没改，就还是用 gin-api-scaffold-v1-v1
-	// 如果你已经打算叫 gin-api-scaffold，这里记得改成 gin-api-scaffold-v1/controller
 	"gin-api-scaffold-v1/controller"
 	"gin-api-scaffold-v1/logger"
 	"gin-api-scaffold-v1/middleware"
 )
 
+// SetupRouter 配置路由
 func SetupRouter() *gin.Engine {
+	// 1. 创建 Gin 实例 (使用 gin.New() 也就是一张白纸)
 	r := gin.New()
 
-	// 1. 基础中间件 (日志 + 恢复)
-	r.Use(middleware.GinLogger(logger.Logger), middleware.GinRecovery(logger.Logger, true))
-
-	// 2. 跨域配置 (保留)
-	r.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization") // 加了 Authorization
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-		c.Next()
-	})
+	// 2. 注册全局中间件
+	// ⚡️ 替换默认 logger 和 recovery
+	r.Use(middleware.GinLogger(logger.Logger))
+	r.Use(middleware.GinRecovery(logger.Logger, true))
+	// ⚡️ 注册跨域中间件 (直接调用刚才写的函数)
+	r.Use(middleware.Cors())
 
 	// 3. 注册路由
-	// ❌ 删掉原来的 Todo 路由
-	// ✅ 只保留一个基础的 Ping 接口，证明脚手架能通
+	// 基础健康检查 (Ping)，通常用于 k8s 探针或负载均衡检测
 	r.GET("/ping", controller.Ping)
 
-	// 如果你想保留 v1 分组的结构，也可以这样写：
-	// v1 := r.Group("/v1")
-	// {
-	//     v1.GET("/ping", controller.Ping)
-	// }
+	// 4. 业务路由分组 (标准做法)
+	// 以后你的业务接口都放在 /api/v1 下面
+	api := r.Group("/api/v1")
+	{
+		// 比如：api.GET("/users", controller.GetUser)
+		api.GET("/test", func(c *gin.Context) {
+			c.JSON(200, gin.H{"message": "Hello from v1"})
+		})
+	}
+
+	// 5. 处理 404 (当访问不存在的路径时)
+	r.NoRoute(func(c *gin.Context) {
+		c.JSON(http.StatusNotFound, gin.H{
+			"code": 404,
+			"msg":  "404 Not Found",
+		})
+	})
 
 	return r
 }

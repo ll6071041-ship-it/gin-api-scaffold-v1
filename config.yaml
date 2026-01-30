@@ -14,3 +14,11 @@ redis:
   port: 6379
   password: ""
   db: 0
+
+# 新增日志配置
+log:
+  level: "debug"
+  filename: "./logs/my-app.log" # 建议放在 logs 文件夹下
+  max_size: 10      # 每个文件 10MB
+  max_backups: 5    # 保留 5 个旧文件
+  max_age: 30       # 保留 30 天
