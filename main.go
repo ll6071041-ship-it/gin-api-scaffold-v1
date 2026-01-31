@@ -10,96 +10,132 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
+	"go.uber.org/zap" // 👈 必须引入官方包，才能使用全局的 zap.L()
 
 	"gin-api-scaffold-v1/dao"
 	"gin-api-scaffold-v1/logger"
-	"gin-api-scaffold-v1/pkg/snowflake" // 👈 引入雪花算法包
+	"gin-api-scaffold-v1/pkg/snowflake"
 	"gin-api-scaffold-v1/routers"
 	"gin-api-scaffold-v1/settings"
 )
 
+// Go Web 开发通用的脚手架入口
 func main() {
-	// 1. 加载配置
+	// =========================================================================
+	// 1. 加载配置 (Viper)
+	// =========================================================================
+	// 如果配置文件都读不到，系统无法运行，直接 Panic 挂掉是最好的选择
 	if err := settings.InitConfig(); err != nil {
 		panic(fmt.Sprintf("加载配置失败: %v", err))
 	}
 
-	// 2. 初始化日志
+	// =========================================================================
+	// 2. 初始化日志 (Zap)
+	// =========================================================================
+	// ⚠️ 注意：这一步必须尽早执行！
+	// 只有执行了 logger.InitLogger()，全局的 zap.L() 才会被替换成我们将配置好的 Logger。
+	// 否则后面调用 zap.L().Info() 都是空的，什么都打不出来。
 	logger.InitLogger()
-	defer logger.Logger.Sync() // 确保程序退出前把缓冲区日志刷入磁盘
 
-	// 3. 初始化雪花算法 (Snowflake) [新增]
-	// ==========================================
-	// 参数1 "2026-01-01": 起始时间。
-	// 参数2 "1": 当前机器ID (MachineID)。
-	// ⚠️ 注意：目前是单机开发，写死为 1 没问题。
-	// 但如果未来你部署了多台服务器(分布式)，每台机器的 ID 必须不同(比如 1, 2, 3)，
-	// 否则会导致生成重复的 ID！建议以后从配置文件 viper.GetInt64("app.machine_id") 读取。
-	// ==========================================
+	// defer Sync(): 这是一个好习惯。
+	// 它的作用是：在 main 函数结束前，把内存里还没来得及写入硬盘的日志，强制刷入硬盘。
+	// 防止程序崩溃或退出时丢失最后几条日志。
+	defer zap.L().Sync()
+
+	// 打印一条日志，证明日志系统启动成功
+	zap.L().Debug("logger init success...")
+
+	// =========================================================================
+	// 3. 初始化雪花算法 (Snowflake)
+	// =========================================================================
+	// 参数1 "2026-01-01": 我们的项目起始时间。
+	// 参数2 "1": 当前机器 ID (MachineID)。
+	// ⚠️ 分布式部署警告：如果你以后部署多台服务器，每台的这个数字必须不一样(1, 2, 3...)
+	// 建议从配置文件读取: viper.GetInt64("app.machine_id")
 	if err := snowflake.Init("2026-01-01", 1); err != nil {
 		fmt.Printf("init snowflake failed, err:%v\n", err)
-		return // 如果 ID 生成器挂了，程序必须退出，否则后续业务无法运行
+		return
 	}
 
-	// 4. 初始化 MySQL
+	// =========================================================================
+	// 4. 初始化 MySQL (GORM)
+	// =========================================================================
+	// 建立数据库连接池。如果连不上数据库，程序也无法工作，直接 Panic。
 	if err := dao.InitMySQL(); err != nil {
 		panic(err)
 	}
+	// 这里的 deferClose 不建议用了，GORM 维护连接池，通常不需要手动关闭
 
+	// =========================================================================
 	// 5. 初始化 Redis
+	// =========================================================================
+	// 建立 Redis 连接池。
 	if err := dao.InitRedis(); err != nil {
 		panic(err)
 	}
 
-	// 6. 注册路由
+	// =========================================================================
+	// 6. 注册路由 (Gin)
+	// =========================================================================
+	// 这里会加载我们在 routers 包里定义的所有 URL 规则和中间件
 	r := routers.SetupRouter()
 
-	// 7. 启动服务 (优雅关机版)
-	// ==========================================
-	// 我们不再使用 r.Run()，因为那个太简陋了
-	// 我们要自己定义一个 http.Server 以支持优雅关机
-	// ==========================================
-
+	// =========================================================================
+	// 7. 启动服务 (HTTP Server)
+	// =========================================================================
 	port := viper.GetString("app.port")
 
+	// 我们手动创建一个 http.Server，而不是直接用 r.Run()
+	// 为什么？因为 r.Run() 很难控制“优雅关机”，手动创建 Server 对象可以让我们控制 Shutdown 方法。
 	srv := &http.Server{
 		Addr:    ":" + port,
 		Handler: r,
 	}
 
-	// 【开启一个协程启动服务】
-	// 为什么要用协程？因为 srv.ListenAndServe() 会卡死在这里不动
-	// 我们需要它在后台运行，主线程要空出来去监听“关机信号”
+	// 🚀 开启一个协程 (Goroutine) 启动服务
+	// 为什么？因为 srv.ListenAndServe() 是一个“死循环”，它会卡住当前线程一直等待请求。
+	// 如果不放在协程里，后面的“优雅关机”代码永远执行不到。
 	go func() {
 		fmt.Printf("服务正在启动，端口: %s\n", port)
-		// 这里的 ErrServerClosed 是正常的关闭信号，不是错误
+		zap.L().Info("Server is starting...", zap.String("port", port))
+
+		// 启动服务。如果返回错误，且错误不是“服务器已关闭”，说明启动失败（比如端口被占用）
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Logger.Fatal("listen: ", zap.Error(err))
+			// Fatal 会打印错误日志并直接退出程序 (os.Exit)
+			zap.L().Fatal("listen: ", zap.Error(err))
 		}
 	}()
 
-	// 【等待关机信号】
-	// 创建一个通道，专门等系统发信号
+	// =========================================================================
+	// 8. 优雅关机 (Graceful Shutdown) - 面试重点！
+	// =========================================================================
+
+	// 创建一个通道，专门用来接收操作系统的信号
 	quit := make(chan os.Signal, 1)
 
-	// 告诉系统：如果有 SIGINT (Ctrl+C) 或 SIGTERM (Docker杀进程)，请通知我
+	// signal.Notify 告诉操作系统：
+	// 如果收到了 SIGINT (Ctrl+C) 或者 SIGTERM (Docker 停止容器/K8s 销毁 Pod)，
+	// 请把信号发给 quit 通道，不要直接把我的程序杀掉！
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	// 程序会卡在这里死等，直到收到信号
+	// 🛑 程序会卡在这里“死等”！
+	// 直到 quit 通道里收到了信号，才会继续往下执行。
 	<-quit
-	logger.Logger.Info("Shutdown Server ...")
 
-	// 【优雅关机】
+	zap.L().Info("Shutdown Server ...")
+
 	// 创建一个 5 秒的超时上下文
-	// 意思是：我给服务器 5 秒钟时间把手头的事情做完，5秒后不管做没做完都强制关闭
+	// 意思是：我给服务器 5 秒钟的时间去处理手里还没处理完的请求。
+	// 如果 5 秒到了还没处理完，就强制关闭，不再等了。
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	// 调用 Shutdown 通知服务器停止接客，处理剩下的请求
+	// srv.Shutdown 会做两件事：
+	// 1. 马上停止接收新的请求。
+	// 2. 等待正在处理的请求处理完（或者直到 ctx 超时）。
 	if err := srv.Shutdown(ctx); err != nil {
-		logger.Logger.Fatal("Server Shutdown:", zap.Error(err))
+		zap.L().Fatal("Server Shutdown:", zap.Error(err))
 	}
 
-	logger.Logger.Info("Server exiting")
+	zap.L().Info("Server exiting")
 }
