@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"gin-api-scaffold-v1/controller"
-	// "gin-api-scaffold-v1/logger" // 👈 这一行删掉了，因为下面不再需要传 logger 参数了
 	"gin-api-scaffold-v1/middleware"
 )
 
@@ -41,13 +40,20 @@ func SetupRouter() *gin.Engine {
 	// 建议所有业务接口都放在 /api/v1 下面，方便未来升级 v2 版本
 	api := r.Group("/api/v1")
 	{
-		// 测试接口
+		// 测试接口 (原有的)
 		api.GET("/test", func(c *gin.Context) {
 			c.JSON(200, gin.H{
 				"message": "Hello from v1",
 				"user_id": c.Query("user_id"), // 例子：获取参数
 			})
 		})
+
+		// =====================================================================
+		// 🔥 新增：参数校验测试接口
+		// =====================================================================
+		// 对应 controller/demo.go 中的 TestValidator 函数
+		// 发送 POST 请求到 /api/v1/validator_test，Body 带上 JSON 数据即可测试
+		api.POST("/validator_test", controller.TestValidator)
 
 		// 可以在这里继续添加其他业务路由，例如：
 		// api.POST("/login", controller.Login)

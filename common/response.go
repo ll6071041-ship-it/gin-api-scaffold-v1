@@ -4,13 +4,17 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+
+	// 👇 引入我们需要用到的自定义 validator 包 (里面有 RemoveTopStruct 和 Trans)
+	myValidator "gin-api-scaffold-v1/pkg/validator"
 )
 
 // 1. 定义标准 JSON 结构
 type Response struct {
-	Code int         `json:"code"` // 200 表示成功
+	Code int         `json:"code"` // 业务状态码 (200=成功, 400=参数错误, 500=系统错误)
 	Msg  string      `json:"msg"`  // 提示信息
-	Data interface{} `json:"data"` // 数据
+	Data interface{} `json:"data"` // 数据 (可能是对象、列表，或者错误详情 map)
 }
 
 // 2. 成功时的封装
@@ -22,24 +26,41 @@ func Success(c *gin.Context, data interface{}) {
 	})
 }
 
-// common/response.go
+// 3. 错误处理封装 (🔥 核心改造部分)
+// c: 上下文
+// code: 业务错误码 (比如 1001)
+// err: 具体的错误对象
+func Error(c *gin.Context, code int, err error) {
+	var response Response
+	response.Code = code
 
-func Error(c *gin.Context, code int, msg interface{}) {
-	var message string
+	// =========================================================
+	// 🔥 关键点：类型断言 (Type Assertion)
+	// 我们判断传入的 err 到底是不是 "参数校验错误" (validator.ValidationErrors)
+	// =========================================================
+	errs, ok := err.(validator.ValidationErrors)
+	if !ok {
+		// Case A: 如果不是校验错误 (比如数据库连不上、逻辑错误)
+		// 直接返回错误的字符串描述
+		response.Msg = err.Error()
+		response.Data = nil
+	} else {
+		// Case B: 如果是参数校验错误！
 
-	// 使用类型分支（Type Switch）来判断传入的是什么
-	switch v := msg.(type) {
-	case error:
-		message = v.Error() // 如果是 error 接口，自动转字符串
-	case string:
-		message = v // 如果本来就是字符串，直接用
-	default:
-		message = "未知错误"
+		// 1. 使用我们在 pkg/validator 里初始化的全局翻译器 Trans 进行翻译
+		//    这会返回一个 map[string]string，key是字段名，value是中文错误
+		translations := errs.Translate(myValidator.Trans)
+
+		// 2. 去除结构体名字前缀
+		//    把 "SignUpParam.Age" 变成 "age"
+		cleanData := myValidator.RemoveTopStruct(translations)
+
+		// 3. 构造返回
+		//    Msg 提示通用信息 "请求参数错误"
+		//    Data 里放具体的字段错误详情，方便前端展示在输入框下面
+		response.Msg = "请求参数错误"
+		response.Data = cleanData
 	}
 
-	c.JSON(http.StatusOK, Response{
-		Code: code,
-		Msg:  message,
-		Data: nil,
-	})
+	c.JSON(http.StatusOK, response)
 }
