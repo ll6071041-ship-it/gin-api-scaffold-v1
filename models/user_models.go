@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 // SignUpParam 用户注册请求参数
 type SignUpParam struct {
 	// 1. 基础校验：必填
@@ -54,4 +56,35 @@ type RegisterParam struct {
 
 	// 演示非必填字段
 	Address string `json:"address"`
+}
+type User struct {
+	// gorm:"column:user_id" 告诉 GORM 这个字段对应数据库的 user_id 列
+	// primaryKey 告诉 GORM 这是主键
+	ID         int64     `gorm:"column:id;primaryKey;autoIncrement"`
+	UserID     int64     `gorm:"column:user_id;not null"`
+	Username   string    `gorm:"column:username"`
+	Password   string    `gorm:"column:password"`
+	Email      string    `gorm:"column:email"`
+	Gender     int8      `gorm:"column:gender"`
+	CreateTime time.Time `gorm:"column:create_time;autoCreateTime"` // 创建时自动填时间
+	UpdateTime time.Time `gorm:"column:update_time;autoUpdateTime"` // 更新时自动更新时间
+}
+
+// 必须实现 TableName 方法，告诉 GORM 这张表叫 "user"
+// 如果不写，GORM 默认会找叫 "users" (复数) 的表，那就报错了
+func (User) TableName() string {
+	return "user"
+}
+
+// ParamSignUp 注册参数 (前端传来的)
+type ParamSignUp struct {
+	Username   string `json:"username" binding:"required"`
+	Password   string `json:"password" binding:"required"`
+	RePassword string `json:"re_password" binding:"required,eqfield=Password"`
+}
+
+// ParamLogin 登录参数
+type ParamLogin struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
 }
