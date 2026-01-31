@@ -54,3 +54,11 @@
 2026-01-31T16:26:51.695+0800	INFO	gin-api-scaffold-v1/main.go:114	Server is starting...	{"port": "8080"}
 2026-01-31T16:27:16.902+0800	INFO	gin-api-scaffold-v1/main.go:140	Shutdown Server ...
 2026-01-31T16:27:16.902+0800	INFO	gin-api-scaffold-v1/main.go:155	Server exiting
+2026-01-31T16:43:35.864+0800	DEBUG	gin-api-scaffold-v1/main.go:50	logger init success...
+2026-01-31T16:43:35.882+0800	INFO	gin-api-scaffold-v1/main.go:114	Server is starting...	{"port": "8080"}
+2026-01-31T16:43:56.308+0800	ERROR	controller/user.go:18	SignUp with invalid param	{"error": "Key: 'ParamSignUp.re_password' Error:Field validation for 're_password' failed on the 'required' tag"}
+2026-01-31T16:43:56.308+0800	INFO	middleware/gin_logger.go:29	/api/v1/signup	{"status": 200, "method": "POST", "path": "/api/v1/signup", "query": "", "ip": "::1", "user-agent": "PostmanRuntime/7.51.0", "errors": "", "cost": 0.0005141}
+2026-01-31T16:44:15.568+0800	INFO	middleware/gin_logger.go:29	/api/v1/signup	{"status": 200, "method": "POST", "path": "/api/v1/signup", "query": "", "ip": "::1", "user-agent": "PostmanRuntime/7.51.0", "errors": "", "cost": 0.0915767}
+2026-01-31T16:44:36.501+0800	INFO	middleware/gin_logger.go:29	/api/v1/login	{"status": 200, "method": "POST", "path": "/api/v1/login", "query": "", "ip": "::1", "user-agent": "PostmanRuntime/7.51.0", "errors": "", "cost": 0.002663}
+2026-01-31T16:45:09.509+0800	INFO	gin-api-scaffold-v1/main.go:140	Shutdown Server ...
+2026-01-31T16:45:09.510+0800	INFO	gin-api-scaffold-v1/main.go:155	Server exiting
