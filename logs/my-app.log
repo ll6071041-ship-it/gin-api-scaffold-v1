@@ -62,3 +62,16 @@
 2026-01-31T16:44:36.501+0800	INFO	middleware/gin_logger.go:29	/api/v1/login	{"status": 200, "method": "POST", "path": "/api/v1/login", "query": "", "ip": "::1", "user-agent": "PostmanRuntime/7.51.0", "errors": "", "cost": 0.002663}
 2026-01-31T16:45:09.509+0800	INFO	gin-api-scaffold-v1/main.go:140	Shutdown Server ...
 2026-01-31T16:45:09.510+0800	INFO	gin-api-scaffold-v1/main.go:155	Server exiting
+2026-02-01T12:46:18.077+0800	DEBUG	gin-api-scaffold-v1/main.go:50	logger init success...
+2026-02-01T12:46:18.237+0800	INFO	gin-api-scaffold-v1/main.go:114	Server is starting...	{"port": "8080"}
+2026-02-01T12:46:57.963+0800	INFO	middleware/gin_logger.go:29	/api/v1/login	{"status": 200, "method": "POST", "path": "/api/v1/login", "query": "", "ip": "::1", "user-agent": "PostmanRuntime/7.51.1", "errors": "", "cost": 0.0686505}
+2026-02-01T12:47:16.253+0800	ERROR	controller/user.go:71	logic.Login failed	{"username": "batman", "error": "密码错误"}
+2026-02-01T12:47:16.253+0800	INFO	middleware/gin_logger.go:29	/api/v1/login	{"status": 200, "method": "POST", "path": "/api/v1/login", "query": "", "ip": "::1", "user-agent": "PostmanRuntime/7.51.1", "errors": "", "cost": 0.0016771}
+2026-02-01T12:48:09.701+0800	ERROR	controller/user.go:71	logic.Login failed	{"username": "{{username}}", "error": "用户不存在"}
+2026-02-01T12:48:09.701+0800	INFO	middleware/gin_logger.go:29	/api/v1/login	{"status": 200, "method": "POST", "path": "/api/v1/login", "query": "", "ip": "::1", "user-agent": "PostmanRuntime/7.51.1", "errors": "", "cost": 0.0080273}
+2026-02-01T12:48:55.402+0800	INFO	gin-api-scaffold-v1/main.go:140	Shutdown Server ...
+2026-02-01T12:48:55.404+0800	INFO	gin-api-scaffold-v1/main.go:155	Server exiting
+2026-02-01T15:02:41.121+0800	DEBUG	gin-api-scaffold-v1/main.go:50	logger init success...
+2026-02-01T15:02:41.283+0800	INFO	gin-api-scaffold-v1/main.go:114	Server is starting...	{"port": "8080"}
+2026-02-01T15:02:46.806+0800	INFO	gin-api-scaffold-v1/main.go:140	Shutdown Server ...
+2026-02-01T15:02:46.807+0800	INFO	gin-api-scaffold-v1/main.go:155	Server exiting
