@@ -6,61 +6,60 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 
-	// 👇 引入我们需要用到的自定义 validator 包 (里面有 RemoveTopStruct 和 Trans)
+	// 引入你的 validator 包
 	myValidator "gin-api-scaffold-v1/pkg/validator"
 )
 
-// 1. 定义标准 JSON 结构
+// Response 定义标准 JSON 结构
 type Response struct {
-	Code int         `json:"code"` // 业务状态码 (200=成功, 400=参数错误, 500=系统错误)
-	Msg  string      `json:"msg"`  // 提示信息
-	Data interface{} `json:"data"` // 数据 (可能是对象、列表，或者错误详情 map)
+	Code ResCode     `json:"code"` // 引用 code.go 里的 ResCode
+	Msg  interface{} `json:"msg"`
+	Data interface{} `json:"data,omitempty"`
 }
 
-// 2. 成功时的封装
+// Success 成功返回
 func Success(c *gin.Context, data interface{}) {
 	c.JSON(http.StatusOK, Response{
-		Code: 200,
-		Msg:  "success",
+		Code: CodeSuccess,
+		Msg:  CodeSuccess.Msg(),
 		Data: data,
 	})
 }
 
-// 3. 错误处理封装 (🔥 核心改造部分)
-// c: 上下文
-// code: 业务错误码 (比如 1001)
-// err: 具体的错误对象
-func Error(c *gin.Context, code int, err error) {
+// Error 错误返回
+func Error(c *gin.Context, code ResCode, err error) {
 	var response Response
 	response.Code = code
 
-	// =========================================================
-	// 🔥 关键点：类型断言 (Type Assertion)
-	// 我们判断传入的 err 到底是不是 "参数校验错误" (validator.ValidationErrors)
-	// =========================================================
-	errs, ok := err.(validator.ValidationErrors)
-	if !ok {
-		// Case A: 如果不是校验错误 (比如数据库连不上、逻辑错误)
-		// 直接返回错误的字符串描述
-		response.Msg = err.Error()
+	if err == nil {
+		response.Msg = code.Msg()
 		response.Data = nil
-	} else {
-		// Case B: 如果是参数校验错误！
+		c.JSON(http.StatusOK, response)
+		return
+	}
 
-		// 1. 使用我们在 pkg/validator 里初始化的全局翻译器 Trans 进行翻译
-		//    这会返回一个 map[string]string，key是字段名，value是中文错误
+	// 判断是否为 Validator 校验错误
+	errs, ok := err.(validator.ValidationErrors)
+	if ok {
+		response.Code = CodeInvalidParam
+		response.Msg = CodeInvalidParam.Msg()
 		translations := errs.Translate(myValidator.Trans)
-
-		// 2. 去除结构体名字前缀
-		//    把 "SignUpParam.Age" 变成 "age"
-		cleanData := myValidator.RemoveTopStruct(translations)
-
-		// 3. 构造返回
-		//    Msg 提示通用信息 "请求参数错误"
-		//    Data 里放具体的字段错误详情，方便前端展示在输入框下面
-		response.Msg = "请求参数错误"
-		response.Data = cleanData
+		response.Data = myValidator.RemoveTopStruct(translations)
+	} else {
+		// 普通错误
+		response.Msg = code.Msg()
+		// 如果你想调试时看具体错误，可以取消下面这行的注释
+		// response.Data = err.Error()
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+// ErrorWithMsg 自定义错误信息返回
+func ErrorWithMsg(c *gin.Context, code ResCode, msg string) {
+	c.JSON(http.StatusOK, Response{
+		Code: code,
+		Msg:  msg,
+		Data: nil,
+	})
 }
