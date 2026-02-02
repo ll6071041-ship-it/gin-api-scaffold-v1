@@ -2,65 +2,48 @@ package controller
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"gin-api-scaffold-v1/common" // 👈 引入我们封装好的 common 包
-	"gin-api-scaffold-v1/dao"    // 引入 DAO 以便判断特定错误
+	"gin-api-scaffold-v1/common"
+	"gin-api-scaffold-v1/dao"
 	"gin-api-scaffold-v1/logic"
 	"gin-api-scaffold-v1/models"
 )
 
-// SignUpHandler 处理注册请求的函数
+// SignUpHandler 处理注册请求
 func SignUpHandler(c *gin.Context) {
 	// 1. 获取参数和参数校验
 	var p models.ParamSignUp
-
-	// ShouldBindJSON 内部会进行两个动作：
-	// A. 读取 JSON 绑定到结构体
-	// B. 根据 tag (binding:"required") 进行校验
 	if err := c.ShouldBindJSON(&p); err != nil {
-		// 记录日志：这是开发看的，记录原始错误
 		zap.L().Error("SignUp with invalid param", zap.Error(err))
-
-		// ⚡️ 核心改造：使用 common.Error
-		// 我们把原始的 err 传进去，common.Error 内部会自动识别：
-		// 如果是 validator 校验错误 -> 自动翻译成中文 (如 "密码必须大于6位")
-		// 如果是 JSON 格式错误 -> 返回原始错误信息
 		common.Error(c, common.CodeInvalidParam, err)
 		return
 	}
 
-	// 2. 业务处理：调用 Logic 层
+	// 2. 业务处理
 	if err := logic.SignUp(&p); err != nil {
 		zap.L().Error("logic.SignUp failed", zap.Error(err))
-
-		// ⚡️ 进阶处理：根据不同的错误类型，返回不同的业务状态码
-		// 假设我们在 DAO 层定义了 var ErrorUserExist = errors.New("用户已存在")
-		// 这里可以用 errors.Is 来判断
 		if errors.Is(err, dao.ErrorUserExist) {
 			common.Error(c, common.CodeUserExist, err)
 			return
 		}
-
-		// 如果是其他未知错误（比如数据库挂了），就返回 "服务繁忙"
 		common.Error(c, common.CodeServerBusy, err)
 		return
 	}
 
 	// 3. 返回响应
-	// 注册成功，不需要返回什么数据，传 nil 即可
 	common.Success(c, nil)
 }
 
-// LoginHandler 处理登录请求的函数
+// LoginHandler 处理登录请求
 func LoginHandler(c *gin.Context) {
 	// 1. 获取参数
 	var p models.ParamLogin
 	if err := c.ShouldBindJSON(&p); err != nil {
 		zap.L().Error("Login with invalid param", zap.Error(err))
-		// 参数校验错误
 		common.Error(c, common.CodeInvalidParam, err)
 		return
 	}
@@ -69,10 +52,6 @@ func LoginHandler(c *gin.Context) {
 	token, err := logic.Login(&p)
 	if err != nil {
 		zap.L().Error("logic.Login failed", zap.String("username", p.Username), zap.Error(err))
-
-		// 登录失败通常有两种情况：用户不存在、密码错误
-		// 为了安全，通常统称为 "用户名或密码错误" (CodeInvalidPassword)
-		// 或者是根据 err 具体内容判断
 		if err.Error() == "用户不存在" {
 			common.Error(c, common.CodeUserNotExist, err)
 		} else {
@@ -82,18 +61,42 @@ func LoginHandler(c *gin.Context) {
 	}
 
 	// 3. 返回响应
-	// 将 Token 放在 Data 字段里返回给前端
+	// ⚡️ 这里我们返回 Token 和用户名
+	// 前端拿到 Token 后，会自动解码出 UserID，所以这里不传 UserID 也可以
 	common.Success(c, gin.H{
-		"token":   token,
-		"user_id": 123456, // 举例：你也可以顺便把 userID 返回去
-		"name":    p.Username,
+		"token":    token,
+		"username": p.Username,
+	})
+}
+
+// GetProfileHandler 获取用户个人信息 (测试 JWT 用)
+// ⚡️ 这是新增的，用来替代 routers.go 里那个匿名函数
+func GetProfileHandler(c *gin.Context) {
+	// 1. 从上下文中取出 userID (这是中间件 middleware.JWTAuthMiddleware 塞进去的)
+	// 如果取不到，说明中间件没生效（或者没配置好），属于系统级错误
+	userID, exists := c.Get("userID")
+	if !exists {
+		zap.L().Error("GetProfileHandler: userID not found in context")
+		common.Error(c, common.CodeNeedLogin, nil)
+		return
+	}
+
+	// 2. 取出 username
+	username, _ := c.Get("username")
+
+	// 3. (可选) 这里通常会拿 userID 去数据库查更详细的信息
+	// user, err := logic.GetUserByID(userID.(int64))
+
+	// 4. 返回数据
+	common.Success(c, gin.H{
+		"user_id":  userID,
+		"username": username,
+		"message":  fmt.Sprintf("你好 %s，Token 验证成功！这是你的私密数据。", username),
 	})
 }
 
 // Ping 心跳检测
 func Ping(c *gin.Context) {
-	// Ping 接口一般不需要复杂的结构，简单返回即可
-	// 当然你也可以用 common.Success(c, "pong")
 	c.JSON(200, gin.H{
 		"message": "pong",
 	})
