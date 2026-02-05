@@ -41,17 +41,17 @@ type SignUpParam struct {
 // 这里的结构体名 RegisterParam 必须首字母大写，才能被其他包（如 controller）访问
 type RegisterParam struct {
 	// binding:"required": 必填
-	// json:"username":    报错时我们希望显示 "username" 而不是 "Username"
+	// json:"username":    报错时我们希望显示 "username" 而不是 "Username"
 	Username string `json:"username" binding:"required"`
 
-	// binding:"gte=6":    长度必须大于等于 6
+	// binding:"gte=6":    长度必须大于等于 6
 	Password string `json:"password" binding:"required,gte=6"`
 
-	// binding:"email":    必须是合法的邮箱格式
+	// binding:"email":    必须是合法的邮箱格式
 	Email string `json:"email" binding:"required,email"`
 
-	// binding:"gte=18":   数值必须大于等于 18
-	// binding:"lte=130":  数值必须小于等于 130
+	// binding:"gte=18":   数值必须大于等于 18
+	// binding:"lte=130":  数值必须小于等于 130
 	Age uint8 `json:"age" binding:"gte=18,lte=130"`
 
 	// 演示非必填字段

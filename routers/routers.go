@@ -5,6 +5,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	// 👇 【新增】这里必须导入 swagger 的两个包，否则下面的 gs 和 swaggerFiles 会报错 undefined
+	swaggerFiles "github.com/swaggo/files"
+	gs "github.com/swaggo/gin-swagger"
+
 	"gin-api-scaffold-v1/controller"
 	"gin-api-scaffold-v1/middleware"
 )
@@ -75,6 +79,13 @@ func SetupRouter() *gin.Engine {
 			"msg":  "404 Not Found (你访问的路径不存在)",
 		})
 	})
+
+	// =======================================================
+	// 6. 注册 Swagger 文档路由
+	// =======================================================
+	// 访问地址：http://localhost:port/swagger/index.html
+	// gs 和 swaggerFiles 现在可以正常使用了，因为我们在文件顶部 import 了它们
+	r.GET("/swagger/*any", gs.WrapHandler(swaggerFiles.Handler))
 
 	return r
 }

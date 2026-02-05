@@ -1,0 +1,169 @@
+basePath: /api/v1
+definitions:
+  common.ResCode:
+    enum:
+    - 1000
+    - 1001
+    - 1002
+    - 1003
+    - 1004
+    - 1005
+    - 1006
+    - 1007
+    format: int64
+    type: integer
+    x-enum-comments:
+      CodeInvalidParam: "1001"
+      CodeInvalidPassword: "1004"
+      CodeServerBusy: "1005"
+      CodeUserExist: "1002"
+      CodeUserNotExist: "1003"
+    x-enum-descriptions:
+    - ""
+    - "1001"
+    - "1002"
+    - "1003"
+    - "1004"
+    - "1005"
+    - ""
+    - ""
+    x-enum-varnames:
+    - CodeSuccess
+    - CodeInvalidParam
+    - CodeUserExist
+    - CodeUserNotExist
+    - CodeInvalidPassword
+    - CodeServerBusy
+    - CodeNeedLogin
+    - CodeInvalidToken
+  common.Response:
+    properties:
+      code:
+        allOf:
+        - $ref: '#/definitions/common.ResCode'
+        description: 引用 code.go 里的 ResCode
+      data: {}
+      msg: {}
+    type: object
+  models.ParamLogin:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  models.ParamSignUp:
+    properties:
+      password:
+        type: string
+      re_password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - re_password
+    - username
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: 七米老师 (你的名字)
+    url: http://www.liwenzhou.com
+  description: 这是一个基于Gin框架的社区后端项目(仿Reddit)
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Bluebell项目接口文档
+  version: "1.0"
+paths:
+  /home:
+    get:
+      consumes:
+      - application/json
+      description: 获取当前登录用户的详细信息 (需要携带Token)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回用户信息
+          schema:
+            $ref: '#/definitions/common.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取个人信息
+      tags:
+      - 用户相关接口
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: 处理用户登录请求，返回JWT Token
+      parameters:
+      - description: 登录参数
+        in: body
+        name: object
+        required: true
+        schema:
+          $ref: '#/definitions/models.ParamLogin'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/common.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ParamLogin'
+              type: object
+      summary: 用户登录
+      tags:
+      - 用户相关接口
+  /ping:
+    get:
+      description: 检查服务是否正常运行
+      responses:
+        "200":
+          description: pong
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 心跳检测
+      tags:
+      - 基础接口
+  /signup:
+    post:
+      consumes:
+      - application/json
+      description: 处理用户注册请求，需要提供用户名、密码和确认密码
+      parameters:
+      - description: 注册参数
+        in: body
+        name: object
+        required: true
+        schema:
+          $ref: '#/definitions/models.ParamSignUp'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 注册成功
+          schema:
+            $ref: '#/definitions/common.Response'
+      summary: 用户注册
+      tags:
+      - 用户相关接口
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

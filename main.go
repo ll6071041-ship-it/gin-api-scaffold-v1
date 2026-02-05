@@ -13,6 +13,8 @@ import (
 	"go.uber.org/zap"
 
 	"gin-api-scaffold-v1/dao"
+	// ⚠️ 注意：这里必须引入 docs 包，否则 Swagger 无法加载文档数据
+	_ "gin-api-scaffold-v1/docs"
 	"gin-api-scaffold-v1/logger"
 	"gin-api-scaffold-v1/pkg/snowflake"
 
@@ -21,6 +23,25 @@ import (
 	"gin-api-scaffold-v1/routers"
 	"gin-api-scaffold-v1/settings"
 )
+
+// @title           Bluebell项目接口文档
+// @version         1.0
+// @description     这是一个基于Gin框架的社区后端项目(仿Reddit)
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name    KKK
+// @contact.url     http://www.liwenzhou.com
+// @contact.email   support@swagger.io
+
+// @license.name    Apache 2.0
+// @license.url     http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host            localhost:8080
+// @BasePath        /api/v1
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
 
 // main 函数是 Go Web 项目的唯一入口
 func main() {
