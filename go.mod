@@ -10,6 +10,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/juju/ratelimit v1.0.2
 	github.com/redis/go-redis/v9 v9.17.3
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1

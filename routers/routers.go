@@ -2,8 +2,10 @@ package routers
 
 import (
 	"net/http"
+	"time" // 👈 【新增】需要用到时间计算
 
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper" // 👈 【新增】需要读取配置文件
 
 	// 👇 【新增】这里必须导入 swagger 的两个包，否则下面的 gs 和 swaggerFiles 会报错 undefined
 	swaggerFiles "github.com/swaggo/files"
@@ -29,6 +31,18 @@ func SetupRouter() *gin.Engine {
 	r.Use(middleware.GinRecovery(true))
 	// 跨域处理 (CORS)：允许前端跨域访问
 	r.Use(middleware.Cors())
+
+	// 🔥 【新增】注册全局限流中间件 (令牌桶)
+	// 从配置文件读取 QPS (每秒请求数)
+	qps := viper.GetInt64("rate_limit.qps")
+	if qps > 0 {
+		// 计算填充间隔: 如果 QPS 是 1000，那么间隔就是 1秒/1000 = 1毫秒
+		// 也就是说：每 1 毫秒往桶里放一个令牌，一秒钟正好放 1000 个
+		fillInterval := time.Second / time.Duration(qps)
+
+		// 容量也设置为 QPS 的大小，允许瞬间爆发 1000 个请求
+		r.Use(middleware.RateLimitMiddleware(fillInterval, qps))
+	}
 
 	// =======================================================
 	// 3. 注册基础路由 (Infrastructure)

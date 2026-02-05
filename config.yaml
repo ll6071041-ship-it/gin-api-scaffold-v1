@@ -21,7 +21,12 @@ log:
   filename: "./logs/my-app.log" # 建议放在 logs 文件夹下
   max_size: 10      # 每个文件 10MB
   max_backups: 5    # 保留 5 个旧文件
-  max_age: 30       # 保留 30 天\
+  max_age: 30       # 保留 30 天
+
 auth:
   jwt_secret: "你的专属密钥_比如_bluebell_secret"
   jwt_expire: 24 # 过期时间(小时)
+
+# 🔥 【新增】限流配置
+rate_limit:
+  qps: 1000 # 每秒允许多少个请求 (Query Per Second)
