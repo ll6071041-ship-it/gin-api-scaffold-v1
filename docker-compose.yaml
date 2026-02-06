@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  # --- 服务 1: MySQL ---
+  mysql_db:
+    image: mysql:8.0
+    ports:
+      - "33061:3306"  # 外部访问用 33061
+    environment:
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: "gin_project" # 确保这里跟你导出的数据库名一致
+    volumes:
+      - ./mysql_data:/var/lib/mysql             # 数据持久化目录
+      - ./gin_project.sql:/docker-entrypoint-initdb.d/init.sql # 【核心】自动导入旧数据脚本
+
+  # --- 服务 2: Redis ---
+  redis_db:
+    image: redis:latest
+    ports:
+      - "16379:6379"  # 外部访问用 63791
+    volumes:
+      - ./redis_data:/data # 【新增】让 Redis 数据也存到你硬盘上
+
+  # --- 服务 3: 你的 Go App ---
+  gin_app:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql_db
+      - redis_db
+    # 确保你的项目根目录下有 wait-for.sh 且有执行权限
+    command: ["./wait-for.sh", "mysql_db:3306", "--", "./main"]
