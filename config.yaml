@@ -4,13 +4,13 @@ app:
 
 mysql:
   user: "root"
-  password: "root"           # 👈 别人用的时候填他们自己的，这里留空
-  host: "mysql_db"
+  password: "123456"           # 👈 别人用的时候填他们自己的，这里留空
+  host: "127.0.0.1"
   port: 3306
   dbname: "gin_project"     # 👈 改个通用的名字，别叫 bubble 了
 
 redis:
-  host: "redis_db"      # 👈 默认填本地回环
+  host: "192.168.64.128"      # 👈 默认填本地回环
   port: 6379
   password: ""
   db: 0
