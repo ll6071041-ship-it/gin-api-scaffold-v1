@@ -3,6 +3,7 @@ package controller
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -11,6 +12,7 @@ import (
 	"gin-api-scaffold-v1/dao"
 	"gin-api-scaffold-v1/logic"
 	"gin-api-scaffold-v1/models"
+	"gin-api-scaffold-v1/pkg/rabbitmq"
 )
 
 // SignUpHandler 处理注册请求
@@ -125,8 +127,20 @@ func GetProfileHandler(c *gin.Context) {
 // @Tags         基础接口
 // @Success      200  {object} map[string]string "pong"
 // @Router       /ping [get]
+
 func Ping(c *gin.Context) {
+	// 造一条带时间戳的消息
+	msg := fmt.Sprintf("Hello RabbitMQ! 现在的秒数是: %v", time.Now().Unix())
+
+	// 调用生产者发送消息
+	err := rabbitmq.SendMessage(msg)
+	if err != nil {
+		c.JSON(500, gin.H{"msg": "MQ 发送失败"})
+		return
+	}
+
 	c.JSON(200, gin.H{
-		"message": "pong",
+		"message":   "pong",
+		"mq_status": "消息已投递到 RabbitMQ!",
 	})
 }

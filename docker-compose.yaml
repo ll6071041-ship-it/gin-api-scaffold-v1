@@ -26,8 +26,20 @@ services:
     build: .
     ports:
       - "8080:8080"
+    restart: always  
     depends_on:
       - mysql_db
       - redis_db
     # 确保你的项目根目录下有 wait-for.sh 且有执行权限
     command: ["./wait-for.sh", "mysql_db:3306", "--", "./main"]
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq_server
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    volumes:
+      - ./rabbitmq_data:/var/lib/rabbitmq

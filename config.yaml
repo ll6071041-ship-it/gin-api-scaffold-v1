@@ -4,29 +4,38 @@ app:
 
 mysql:
   user: "root"
-  password: "123456"           # 👈 别人用的时候填他们自己的，这里留空
-  host: "127.0.0.1"
+  # ⚠️ 密码必须和 docker-compose 里 MYSQL_ROOT_PASSWORD 保持一致
+  password: "root" 
+  # ⚠️ 不能写 127.0.0.1，要写 docker-compose 里的 MySQL 服务名
+  host: "mysql_db"
   port: 3306
-  dbname: "gin_project"     # 👈 改个通用的名字，别叫 bubble 了
+  dbname: "gin_project"
 
 redis:
-  host: "192.168.64.128"      # 👈 默认填本地回环
+  # ⚠️ 不能写 IP，要写 docker-compose 里的 Redis 服务名
+  host: "redis_db"
   port: 6379
   password: ""
   db: 0
 
-# 新增日志配置
+# 🔥 【新增】RabbitMQ 配置 (留着马上写代码用)
+rabbitmq:
+  host: "rabbitmq"   # 对应 docker-compose 里的服务名
+  port: 5672         # 给代码用的通信端口
+  user: "admin"
+  password: "admin123"
+
+# --- 下面的是你原来的配置，保持不变 ---
 log:
   level: "debug"
-  filename: "./logs/my-app.log" # 建议放在 logs 文件夹下
-  max_size: 10      # 每个文件 10MB
-  max_backups: 5    # 保留 5 个旧文件
-  max_age: 30       # 保留 30 天
+  filename: "./logs/my-app.log"
+  max_size: 10
+  max_backups: 5
+  max_age: 30
 
 auth:
   jwt_secret: "你的专属密钥_比如_bluebell_secret"
-  jwt_expire: 24 # 过期时间(小时)
+  jwt_expire: 24
 
-# 🔥 【新增】限流配置
 rate_limit:
-  qps: 1000 # 每秒允许多少个请求 (Query Per Second)
+  qps: 1000

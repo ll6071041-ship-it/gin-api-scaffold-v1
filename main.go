@@ -16,6 +16,7 @@ import (
 	// ⚠️ 注意：这里必须引入 docs 包，否则 Swagger 无法加载文档数据
 	_ "gin-api-scaffold-v1/docs"
 	"gin-api-scaffold-v1/logger"
+	"gin-api-scaffold-v1/pkg/rabbitmq"
 	"gin-api-scaffold-v1/pkg/snowflake"
 
 	// 👇 引入我们刚刚写的 validator 包，起个别名 myValidator 防止和官方包重名
@@ -108,6 +109,13 @@ func main() {
 	if err := dao.InitRedis(); err != nil {
 		panic(err)
 	}
+
+	rabbitmq.Init()
+	defer rabbitmq.Conn.Close()
+	defer rabbitmq.Channel.Close()
+
+	// 2. 启动消费者（让它在后台一直监听）
+	rabbitmq.StartConsumer()
 
 	// =========================================================================
 	// 7. 注册路由 (Gin)
